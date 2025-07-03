@@ -8,15 +8,15 @@ import { getDatabase, ref, onValue } from 'firebase/database';
 
 // Your firebase config here
 const firebaseConfig = {
-    apiKey: "AIzaSyAzTqZRmmqGIAdK1nMzCmYnzUDl9wXqB44",
-    authDomain: "londonliftsstatus.firebaseapp.com",
-    databaseURL: "https://londonliftsstatus-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "londonliftsstatus",
-    storageBucket: "londonliftsstatus.firebasestorage.app",
-    messagingSenderId: "1087365913726",
-    appId: "1:1087365913726:web:ae737aaba23471fc198c2f",
-    measurementId: "G-4DL3HKTMN6"
-  };
+  apiKey: "AIzaSyAzTqZRmmqGIAdK1nMzCmYnzUDl9wXqB44",
+  authDomain: "londonliftsstatus.firebaseapp.com",
+  databaseURL: "https://londonliftsstatus-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "londonliftsstatus",
+  storageBucket: "londonliftsstatus.firebasestorage.app",
+  messagingSenderId: "1087365913726",
+  appId: "1:1087365913726:web:ae737aaba23471fc198c2f",
+  measurementId: "G-4DL3HKTMN6"
+};
 
 initializeApp(firebaseConfig);
 const db = getDatabase();
@@ -37,15 +37,21 @@ const tunnelEntrances: { tunnel: Tunnel; side: 'north' | 'south'; lat: number; l
   { tunnel: Tunnel.Woolwich, side: 'south', lat: 51.4921, lon: 0.0636 },
 ];
 
+
 export default function App() {
   const [status, setStatus] = useState<TunnelStatus | null>(null);
 
   useEffect(() => {
     const statusRef = ref(db, 'liftStatus');
     onValue(statusRef, (snapshot) => {
-      setStatus(snapshot.val());
+        const data = snapshot.val();
+        console.log('Firebase data:', data);
+        setStatus(data);
+    }, (error) => {
+        console.error('Firebase read failed:', error);
     });
-  }, []);
+    }, []);
+
 
   useEffect(() => {
     if (!status) return;
@@ -96,9 +102,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loading: { marginTop: 100, fontSize: 18 },
-  block: { margin: 20, alignItems: 'center' },
-  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 6 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
+  text: { fontSize: 24, color: 'black' },
+  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
+    block: { margin: 20, alignItems: 'center' },
+    loading: { marginTop: 100, textAlign: 'center', fontSize: 18 },
+
 });
 
