@@ -36,6 +36,27 @@ const tunnelEntrances: { tunnel: Tunnel; side: 'north' | 'south'; lat: number; l
   { tunnel: Tunnel.Woolwich, side: 'north', lat: 51.4951, lon: 0.0608 },
   { tunnel: Tunnel.Woolwich, side: 'south', lat: 51.4921, lon: 0.0636 },
 ];
+function haversineDistance(
+  coords1: { lat: number; lon: number },
+  coords2: { lat: number; lon: number }
+): number {
+  const toRad = (value: number): number => (value * Math.PI) / 180;
+
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = toRad(coords1.lat);
+  const φ2 = toRad(coords2.lat);
+  const Δφ = toRad(coords2.lat - coords1.lat);
+  const Δλ = toRad(coords2.lon - coords1.lon);
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // distance in meters
+}
 
 
 export default function App() {
