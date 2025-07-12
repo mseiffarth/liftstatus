@@ -5,8 +5,9 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue } from 'firebase/database';
+import '../tasks/location-task'; // ensure background task is registered
 
-// Your firebase config here
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAzTqZRmmqGIAdK1nMzCmYnzUDl9wXqB44",
   authDomain: "londonliftsstatus.firebaseapp.com",
@@ -17,7 +18,8 @@ const firebaseConfig = {
   appId: "1:1087365913726:web:ae737aaba23471fc198c2f",
   measurementId: "G-4DL3HKTMN6"
 };
-
+const distanceIntervalMetres = 100; //m
+const timeIntervalMSeconds = 300000; //ms
 initializeApp(firebaseConfig);
 const db = getDatabase();
 
@@ -30,82 +32,51 @@ enum Tunnel {
 type LiftStatus = { north: boolean; south: boolean };
 type TunnelStatus = Record<Tunnel, LiftStatus>;
 
-const tunnelEntrances: { tunnel: Tunnel; side: 'north' | 'south'; lat: number; lon: number }[] = [
-  { tunnel: Tunnel.Greenwich, side: 'north', lat: 51.4872, lon: -0.0046 },
-  { tunnel: Tunnel.Greenwich, side: 'south', lat: 51.4810, lon: -0.0090 },
-  { tunnel: Tunnel.Woolwich, side: 'north', lat: 51.4951, lon: 0.0608 },
-  { tunnel: Tunnel.Woolwich, side: 'south', lat: 51.4921, lon: 0.0636 },
-];
-function haversineDistance(
-  coords1: { lat: number; lon: number },
-  coords2: { lat: number; lon: number }
-): number {
-  const toRad = (value: number): number => (value * Math.PI) / 180;
-
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = toRad(coords1.lat);
-  const φ2 = toRad(coords2.lat);
-  const Δφ = toRad(coords2.lat - coords1.lat);
-  const Δλ = toRad(coords2.lon - coords1.lon);
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // distance in meters
-}
-
-
 export default function App() {
   const [status, setStatus] = useState<TunnelStatus | null>(null);
 
   useEffect(() => {
     const statusRef = ref(db, 'liftStatus');
     onValue(statusRef, (snapshot) => {
-        const data = snapshot.val();
-        console.log('Firebase data:', data);
-        setStatus(data);
+      const data = snapshot.val();
+      console.log('Firebase data:', data);
+      setStatus(data);
     }, (error) => {
-        console.error('Firebase read failed:', error);
+      console.error('Firebase read failed:', error);
     });
-    }, []);
-
+  }, []);
 
   useEffect(() => {
-    if (!status) return;
+    const startBackgroundLocation = async () => {
+      const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+      if (fgStatus !== 'granted') {
+        console.warn('Foreground location permission not granted');
+        return;
+      }
 
-    const checkProximity = async () => {
-      const { status: perm } = await Location.requestForegroundPermissionsAsync();
-      if (perm !== 'granted') return;
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus !== 'granted') {
+        console.warn('Background location permission not granted');
+        return;
+      }
 
-      const loc = await Location.getCurrentPositionAsync({});
-
-      const dist = (a: { latitude: number; longitude: number }, b: { lat: number; lon: number }) =>
-        Math.sqrt(Math.pow(a.latitude - b.lat, 2) + Math.pow(a.longitude - b.lon, 2));
-
-      const notifiedTunnels = new Set<Tunnel>();
-
-      tunnelEntrances.forEach(({ tunnel, lat, lon }) => {
-        if (notifiedTunnels.has(tunnel)) return;
-        if (dist(loc.coords, { lat, lon }) < 0.003 && status[tunnel]) {
-          notifiedTunnels.add(tunnel);
-          const s = status[tunnel];
-          Notifications.scheduleNotificationAsync({
-            content: {
-              title: `Welcome to ${tunnel} foot tunnel`,
-              body: `North lift: ${s.north ? 'Working' : 'Not working'}, South lift: ${s.south ? 'Working' : 'Not working'}`,
-            },
-            trigger: null,
-          });
-        }
-      });
+      const isRunning = await Location.hasStartedLocationUpdatesAsync('tunnel-location-task');
+      if (!isRunning) {
+        await Location.startLocationUpdatesAsync('tunnel-location-task', {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: distanceIntervalMetres, // meters
+          timeInterval: timeIntervalMSeconds,  // ms
+          showsBackgroundLocationIndicator: true,
+          foregroundService: {
+            notificationTitle: 'Lift Status running',
+            notificationBody: 'Tracking your location to check lift availability.',
+          },
+        });
+      }
     };
 
-    checkProximity();
-  }, [status]);
+    startBackgroundLocation();
+  }, []);
 
   if (!status) return <Text style={styles.loading}>Loading...</Text>;
 
@@ -126,8 +97,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
   text: { fontSize: 24, color: 'black' },
   header: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
-    block: { margin: 20, alignItems: 'center' },
-    loading: { marginTop: 100, textAlign: 'center', fontSize: 18 },
-
+  block: { margin: 20, alignItems: 'center' },
+  loading: { marginTop: 100, textAlign: 'center', fontSize: 18 },
 });
-
