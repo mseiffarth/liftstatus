@@ -29,6 +29,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="liftstatus"/>
+        <data android:scheme="exp+liftstatus"/>
       </intent-filter>
     </activity>
   </application>
