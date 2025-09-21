@@ -14,7 +14,7 @@
         "NSLocationWhenInUseUsageDescription": "This app uses your location to check proximity to foot tunnels.",
         "NSLocationAlwaysUsageDescription": "This app uses your location in the background to check proximity to foot tunnels."
       },
-      "bundleIdentifier": "com.yourcompany.liftstatus"
+      "bundleIdentifier": "com.mseiffarth.liftstatus"
     },
     "android": {
       "adaptiveIcon": {

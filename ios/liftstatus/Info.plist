@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>liftstatus</string>
-          <string>com.yourcompany.liftstatus</string>
+          <string>com.mseiffarth.liftstatus</string>
         </array>
       </dict>
       <dict>
@@ -61,6 +61,8 @@
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
     </array>
+    <key>RCTNewArchEnabled</key>
+    <true/>
     <key>UIBackgroundModes</key>
     <array>
       <string>fetch</string>
